@@ -37,6 +37,56 @@ def generateIndex(allData, imageNumber):
     index  = [ level1, level2 ]
     return index
 
+def readThunderstormLocalisations(fname, pixelSize=1.0):
+    """ Read Thunderstorm localisation files """
+    # Read the header
+    with open(fname, 'r') as f:
+        header = [ item.strip('"') for item in f.readline().strip().split(',') ]
+        # Check the required columns
+        assert( 'x [nm]' in header )
+        assert( 'y [nm]' in header )
+        assert( 'frame' in header )
+        assert( 'intensity [photon]' in header )
+        assert( 'offset [photon]' in header )
+        assert( 'bkgstd [photon]' in header )
+        assert( 'uncertainty [nm]' in header )
+        
+    xPositionIndex   = header.index('x [nm]')
+    yPositionIndex   = header.index('y [nm]')
+    uncertaintyIndex = header.index('uncertainty [nm]')
+    intensityIndex   = header.index('intensity [photon]')
+    frameIndex       = header.index('frame')
+    offsetIndex      = header.index('offset [photon]')
+    bkgstdIndex      = header.index('bkgstd [photon]')
+    sigmaIndex       = header.index('sigma [nm]')
+    
+    # Read the data
+    allData  = np.loadtxt(fname, skiprows=1, delimiter=',')
+    
+    # Sort ascending frames, thanks to: http://stackoverflow.com/a/2828121
+    allData = allData[allData[:,frameIndex].argsort()]
+    
+    # Assemble the index structure for the DataFrame
+    index = generateIndex(allData, frameIndex)
+    
+    # Select the columns
+    dataIndexes = [xPositionIndex, yPositionIndex, uncertaintyIndex, intensityIndex, \
+                   frameIndex, sigmaIndex, offsetIndex, bkgstdIndex ]
+
+    columns = ['x','y','uncertainty', 'intensity [photon]', 'frame', \
+               'sigma', 'offset [photon]', 'bkgstd [photon]']
+    
+    # Assemble the data into a DataFrame
+    data = DataFrame(allData[:,dataIndexes], columns=columns, index=index)
+    
+    # Convert from nm to px    
+    data[['x','y','uncertainty','sigma']] = data[['x','y','uncertainty','sigma']] / float(pixelSize)
+    
+    
+    return data
+    
+    
+
 def readRapidStormLocalisations(fname, photonConversion=1.0, pixelSize=1.0):
     """ Read rapidStorm localisations from text file.
     

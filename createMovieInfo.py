@@ -76,6 +76,14 @@ def convert(dataFrame):
     indexY = list(pos.columns).index('y')
     indexT = list(pos.columns).index('frame')
     
+    # For thunderstorm input
+    try:
+        indexUncertainty = list(pos.columns).index('uncertainty')
+        indexAmplitude   = list(pos.columns).index('intensity [photon]')
+    except:
+        indexUncertainty = None
+        indexAmplitude   = None
+    
     # Convert the DataFrame to an numpy array
     data = dataFrame.values
     
@@ -86,7 +94,12 @@ def convert(dataFrame):
         Y = data[row,:][indexY]
         T = data[row,:][indexT]
         
-        newData.setdefault(T, list()).append( (X, 0, Y, 0, 1, 0) )
+        if indexUncertainty is None:
+            newData.setdefault(T, list()).append( (X, 0, Y, 0, 1, 0) )
+        else:
+            U   = data[row,:][indexUncertainty]
+            Amp = data[row,:][indexAmplitude]
+            newData.setdefault(T, list()).append( (X, U, Y, U, Amp, 0) )
 
     return newData
 
@@ -99,7 +112,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", help="Input file with localisations")
     parser.add_argument("-o", "--output", help="Where the data should be written to")
-    parser.add_argument("-t", "--type", help="Type of the localizatin file (xyt (0 default), rapidSTORM (1)")
+    parser.add_argument("-t", "--type", help="Type of the localisation file (xyt (0 default), rapidSTORM (1), thunderstorm (2)")
     parser.add_argument("-p", "--pixelSize", help="Pixel size of the data. Used as conversion factor to convert into pixels. Set to 1 if in doubt, then no change will happen.")
     args = parser.parse_args()
     
@@ -126,6 +139,8 @@ if __name__ == '__main__':
         pos = rL.readXYTLocalisations(fileNameIn, pixelSize)
     elif args.type == '1' or args.type == 'rapidSTORM':
         pos = rL.readRapidStormLocalisations(fileNameIn, pixelSize)
+    elif args.type == '2' or args.type == 'tunderstorm':
+        pos = rL.readThunderstormLocalisations(fileNameIn, pixelSize)
     else:
         print('Input type not understood.\nExiting.\n')
         sys.exit()
